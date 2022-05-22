@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-- None.
+- **added:** Automatically handle `http_body::LengthLimitError` in `FailedToBufferBody` and map
+  such errors to `413 Payload Too Large`
+- **added:** `FailedToBufferBody::is_length_limit_error` to check if the underlying error is
+  `http_body::LengthLimitError`. Its source error can also be downcast to
+  `http_body::LengthLimitError`
 
 # 0.2.4 (02. May, 2022)
 
