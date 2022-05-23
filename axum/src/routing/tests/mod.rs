@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 use tower::{service_fn, timeout::TimeoutLayer, ServiceBuilder, ServiceExt};
-use tower_http::auth::RequireAuthorizationLayer;
+use tower_http::{auth::RequireAuthorizationLayer, map_request_body::MapRequestBodyLayer};
 use tower_service::Service;
 
 mod fallback;
@@ -698,4 +698,23 @@ async fn head_with_middleware_applied() {
 async fn routes_must_start_with_slash() {
     let app = Router::new().route(":foo", get(|| async {}));
     TestClient::new(app);
+}
+
+#[tokio::test]
+async fn limited_body() {
+    use http_body::Limited;
+
+    const LIMIT: usize = 3;
+
+    let app = Router::new()
+        .route("/", post(|_: Bytes| async {}))
+        .layer(MapRequestBodyLayer::new(|body| Limited::new(body, LIMIT)));
+
+    let client = TestClient::new(app);
+
+    let res = client.post("/").body("a".repeat(LIMIT)).send().await;
+    assert_eq!(res.status(), StatusCode::OK);
+
+    let res = client.post("/").body("a".repeat(LIMIT * 2)).send().await;
+    assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
